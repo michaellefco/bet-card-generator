@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Winning Bet Card Generator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f4f4f5;
+    color: #18181b;
+    padding: 24px;
+  }
+
+  h1 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #18181b;
+    margin-bottom: 24px;
+    letter-spacing: -0.01em;
+  }
+
+  .app {
+    display: flex;
+    flex-direction: row;
+    gap: 24px;
+    align-items: flex-start;
+    justify-content: center;
+  }
+
+  .controls {
+    flex: 1;
+    min-width: 0;
+    max-width: 520px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .preview-col {
+    width: 380px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    position: sticky;
+    top: 24px;
+  }
+
+  .section-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: #71717a;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+  }
+
+  .panel {
+    background: #ffffff;
+    border: 1px solid #e4e4e7;
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+
+  .field { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+  .field label { font-size: 11px; color: #71717a; font-weight: 500; }
+  .field input, .field select {
+    font-size: 13px;
+    padding: 6px 9px;
+    border-radius: 6px;
+    border: 1px solid #e4e4e7;
+    background: #fafafa;
+    color: #18181b;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .field input:focus, .field select:focus {
+    border-color: #a1a1aa;
+    box-shadow: 0 0 0 2px rgba(161,161,170,0.15);
+  }
+  .field-row { display: flex; gap: 8px; }
+
+  .leg-block {
+    background: #fafafa;
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border: 1px solid #e4e4e7;
+  }
+  .leg-header { display: flex; align-items: center; justify-content: space-between; }
+  .leg-num { font-size: 11px; font-weight: 600; color: #a1a1aa; }
+  .remove-btn { background: none; border: none; cursor: pointer; color: #a1a1aa; font-size: 18px; line-height: 1; padding: 0 2px; }
+  .remove-btn:hover { color: #18181b; }
+
+  .add-leg-btn {
+    background: none;
+    border: 1px dashed #d4d4d8;
+    border-radius: 8px;
+    color: #a1a1aa;
+    font-size: 13px;
+    cursor: pointer;
+    padding: 8px;
+    text-align: center;
+    width: 100%;
+    margin-top: 8px;
+  }
+  .add-leg-btn:hover { background: #f4f4f5; color: #18181b; }
+
+  .type-tabs { display: flex; gap: 4px; background: #f4f4f5; border-radius: 8px; padding: 3px; }
+  .type-tab {
+    flex: 1; padding: 6px 10px; border-radius: 6px; border: none;
+    background: none; color: #71717a; font-size: 13px; font-weight: 500;
+    cursor: pointer; text-align: center;
+  }
+  .type-tab.active { background: #ffffff; color: #18181b; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+
+  .brand-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
+  .brand-tab {
+    padding: 5px 13px; border-radius: 20px; border: 1.5px solid #e4e4e7;
+    background: #fafafa; color: #52525b; font-size: 12px; font-weight: 500;
+    cursor: pointer; white-space: nowrap;
+  }
+  .brand-tab:hover { border-color: #a1a1aa; color: #18181b; }
+  .brand-tab.active { border-color: transparent; font-weight: 600; }
+
+  .export-btn {
+    background: #18181b; border: none; border-radius: 8px; color: #ffffff;
+    font-size: 13px; font-weight: 600; cursor: pointer; padding: 11px 16px;
+    width: 100%; display: flex; align-items: center; justify-content: center; gap: 7px;
+  }
+  .export-btn:hover { background: #27272a; }
+  .export-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+  .preview-label { font-size: 10px; font-weight: 600; color: #71717a; text-transform: uppercase; letter-spacing: 0.08em; }
+
+  /* BET CARD */
+  .bet-card {
+    border: 1px solid #252525; border-radius: 10px; overflow: hidden;
+    width: 355px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.12);
+  }
+  .bet-status { display: flex; align-items: flex-start; }
+  .bet-badge { border-radius: 0 0 10px 0; padding: 4px 16px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
+  .bet-title-row { display: flex; align-items: flex-start; justify-content: space-between; padding: 8px 16px; gap: 8px; }
+  .bet-title-left { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+  .bet-title-name { display: flex; align-items: center; gap: 6px; }
+  .bet-title-text { font-size: 16px; font-weight: 600; }
+  .bet-subtitle { font-size: 12px; line-height: 16px; }
+  .score-red { color: #ed2024; }
+  .bet-odds-top { font-size: 16px; font-weight: 600; flex-shrink: 0; line-height: 24px; }
+  .bb-badge { width: 33px; height: 16px; border-radius: 3px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .bb-badge span { font-size: 9px; font-weight: 900; font-style: italic; letter-spacing: -0.5px; }
+  .bet-content { border-top: 1px solid; border-bottom: 1px solid; padding: 12px 16px; }
+  .leg-row-wrap { display: flex; gap: 8px; }
+  .leg-dot-col { display: flex; flex-direction: column; align-items: center; width: 10px; flex-shrink: 0; }
+  .leg-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; }
+  .leg-connector-line { width: 1px; flex: 1; min-height: 4px; }
+  .leg-text { flex: 1; min-width: 0; padding-bottom: 8px; }
+  .leg-row-wrap:last-child .leg-text { padding-bottom: 0; }
+  .leg-selection { display: flex; gap: 4px; font-size: 14px; font-weight: 500; line-height: 20px; overflow: hidden; }
+  .leg-sel { white-space: nowrap; }
+  .leg-mkt { white-space: nowrap; }
+  .leg-sub { font-size: 12px; line-height: 16px; }
+  .bet-footer { display: flex; align-items: flex-end; justify-content: space-between; padding: 12px 16px; }
+  .stake-label, .payout-label { font-size: 12px; font-weight: 500; line-height: 16px; }
+  .stake-val { font-size: 18px; font-weight: 600; line-height: 24px; }
+  .bet-payout { text-align: right; }
+  .payout-val { font-size: 18px; font-weight: 600; line-height: 24px; }
+
+  /* Progress bars */
+  .progress-track-wrap { position: relative; height: 8px; border-radius: 40px; overflow: visible; margin-bottom: 14px; }
+  .progress-track-bg { position: absolute; inset: 0; border-radius: 40px; }
+  .progress-track-fill { position: absolute; left: 0; top: 0; height: 8px; border-radius: 40px; }
+  .progress-value-bubble { position: absolute; top: -6px; background: #fff; color: #000; font-size: 13px; font-weight: 700; padding: 0 6px; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.12); white-space: nowrap; line-height: 20px; }
+</style>
+</head>
+<body>
+
+<h1>Winning Bet Card Generator</h1>
+
+<div class="app">
+  <div class="controls">
+
+    <div class="panel">
+      <div class="section-label">Card type</div>
+      <div class="type-tabs">
+        <button class="type-tab active" id="tab-combi" onclick="switchType('combi')">Combi</button>
+        <button class="type-tab" id="tab-bb" onclick="switchType('bb')">Bet Builder</button>
+        <button class="type-tab" id="tab-bbplus" onclick="switchType('bbplus')">BB+</button>
+        <button class="type-tab" id="tab-single" onclick="switchType('single')">Single</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="section-label">Brand</div>
+      <div class="brand-tabs" id="brand-tabs"></div>
+    </div>
+
+    <div class="panel">
+      <div class="section-label">Settings</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;">
+        <div class="field">
+          <label>Language</label>
+          <select id="lang">
+            <option value="en">English</option>
+            <option value="sv">Swedish</option>
+            <option value="fi">Finnish</option>
+            <option value="es">Spanish</option>
+            <option value="pt">Portuguese (BR)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Currency</label>
+          <select id="currency">
+            <option value="€|pre">EUR (€)</option>
+            <option value="£|pre">GBP (£)</option>
+            <option value="kr|post">SEK (kr)</option>
+            <option value="$|pre">USD ($)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="section-label">Bet details</div>
+      <div class="field-row" style="margin-top:4px;">
+        <div class="field"><label>Odds</label><input type="number" id="odds" value="12.01" step="0.01" min="1"></div>
+        <div class="field"><label>Stake</label><input type="number" id="stake" value="25.00" step="0.01" min="0"></div>
+        <div class="field">
+          <label style="display:flex;align-items:center;justify-content:space-between;">
+            Payout
+            <span style="font-weight:400;color:#a1a1aa;font-size:10px;display:flex;align-items:center;gap:4px;">
+              <input type="checkbox" id="payout-manual" style="width:auto;margin:0;cursor:pointer;"> override
+            </span>
+          </label>
+          <input type="number" id="payout" value="300.25" step="0.01" min="0" disabled style="color:#a1a1aa;">
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="bb-match-card" style="display:none;">
+      <div class="section-label">Match</div>
+      <div class="field-row" style="flex-wrap:wrap;margin-top:4px;">
+        <div class="field"><label>Home team</label><input type="text" id="home-team" value="Chelsea"></div>
+        <div class="field"><label>Away team</label><input type="text" id="away-team" value="Arsenal"></div>
+        <div class="field" style="max-width:72px;"><label>Home score</label><input type="number" id="home-score" value="1" min="0"></div>
+        <div class="field" style="max-width:72px;"><label>Away score</label><input type="number" id="away-score" value="0" min="0"></div>
+      </div>
+    </div>
+
+    <div class="panel" id="single-match-card" style="display:none;">
+      <div class="section-label">Match</div>
+      <div class="field-row" style="flex-wrap:wrap;margin-top:4px;">
+        <div class="field"><label>Home team</label><input type="text" id="single-home-team" value="Chelsea"></div>
+        <div class="field"><label>Away team</label><input type="text" id="single-away-team" value="Arsenal"></div>
+        <div class="field" style="max-width:60px;"><label>Home score</label><input type="number" id="single-home-score" value="1" min="0"></div>
+        <div class="field" style="max-width:60px;"><label>Away score</label><input type="number" id="single-away-score" value="0" min="0"></div>
+        <div class="field"><label>Match time</label><input type="text" id="single-match-time" value="1st Half - 9:38"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="section-label" id="legs-section-label">Legs</div>
+      <div id="bbplus-match-inline" style="display:none;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #e4e4e7;">
+        <div class="field-row" style="flex-wrap:wrap;">
+          <div class="field"><label>Home team</label><input type="text" id="bbplus-home-team" value="Chelsea"></div>
+          <div class="field"><label>Away team</label><input type="text" id="bbplus-away-team" value="Arsenal"></div>
+          <div class="field" style="max-width:72px;"><label>Home score</label><input type="number" id="bbplus-home-score" value="1" min="0"></div>
+          <div class="field" style="max-width:72px;"><label>Away score</label><input type="number" id="bbplus-away-score" value="0" min="0"></div>
+        </div>
+      </div>
+      <div id="legs-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+      <button class="add-leg-btn" id="add-leg">+ Add leg</button>
+    </div>
+
+    <div class="panel" id="bbplus-extra-card" style="display:none;">
+      <div class="section-label">Additional Legs</div>
+      <div id="bbplus-legs-list" style="display:flex;flex-direction:column;gap:8px;margin-top:4px;"></div>
+      <button class="add-leg-btn" id="bbplus-add-leg">+ Add additional leg</button>
+    </div>
+
+    <div class="panel" id="single-match-card" style="display:none;">
+      <div class="section-label">Match</div>
+      <div class="field-row" style="flex-wrap:wrap;margin-top:4px;">
+        <div class="field"><label>Home team</label><input type="text" id="single-home-team" value="Chelsea"></div>
+        <div class="field"><label>Away team</label><input type="text" id="single-away-team" value="Arsenal"></div>
+        <div class="field" style="max-width:60px;"><label>Home score</label><input type="number" id="single-home-score" value="1" min="0"></div>
+        <div class="field" style="max-width:60px;"><label>Away score</label><input type="number" id="single-away-score" value="0" min="0"></div>
+        <div class="field"><label>Match time</label><input type="text" id="single-match-time" value="1st Half - 9:38"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="preview-col">
+    <div class="preview-label">Preview</div>
+    <div id="bet-card" class="bet-card">
+      <div class="bet-status"><div class="bet-badge" id="p-badge">WON</div></div>
+      <div class="bet-title-row">
+        <div class="bet-title-left">
+          <div class="bet-title-name">
+            <div class="bb-badge" id="p-bb-badge" style="display:none;"><span id="p-bb-text">BB</span></div>
+            <div class="bet-title-text" id="p-title">Combi</div>
+          </div>
+          <div class="bet-subtitle" id="p-subtitle" style="display:none;"></div>
+        </div>
+        <div class="bet-odds-top" id="p-odds">12.01</div>
+      </div>
+      <div class="bet-content" id="p-legs-container"></div>
+      <div class="bet-footer">
+        <div class="bet-stake">
+          <div class="stake-label" id="p-stake-lbl">Stake</div>
+          <div class="stake-val" id="p-stake">€25.00</div>
+        </div>
+        <div class="bet-payout">
+          <div class="payout-label" id="p-payout-lbl">Payout</div>
+          <div class="payout-val" id="p-payout">€300.25</div>
+        </div>
+      </div>
+    </div>
+    <button class="export-btn" id="export-btn">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Export PNG
+    </button>
+  </div>
+</div>
+
+<script>
+const BRANDS = {
+  LeoVegas: {
+    label: 'LeoVegas', transact: '#008844', brand: '#ff6600',
+    cardBg: '#ffffff', contentBg: '#f6f6f6', divider: '#e8e8e8',
+    textPrimary: '#111111', textSecondary: '#666666',
+    bbIconColor: '#2481b3', bbBg: '#e8f3fa', bbBorder: '#2481b3',
+    badgeText: '#ffffff', dotBg: '#e8e8e8', dark: false,
+  },
+  BetUK: {
+    label: 'BetUK', transact: '#008844', brand: '#e31324',
+    cardBg: '#ffffff', contentBg: '#f2f5f9', divider: '#e0e4ea',
+    textPrimary: '#111111', textSecondary: '#666666',
+    bbIconColor: '#1c7be5', bbBg: '#e8f0fc', bbBorder: '#1c7be5',
+    badgeText: '#ffffff', dotBg: '#e8e8e8', dark: false,
+  },
+  Expekt: {
+    label: 'Expekt', transact: '#25852f', brand: '#fe8000',
+    cardBg: '#ffffff', contentBg: '#f5f7fb', divider: '#e0e4ea',
+    textPrimary: '#111111', textSecondary: '#666666',
+    bbIconColor: '#2969a5', bbBg: '#e8f0fc', bbBorder: '#2969a5',
+    badgeText: '#ffffff', dotBg: '#e8e8e8', dark: false,
+  },
+  BetMGM: {
+    label: 'BetMGM', transact: '#1dd064', brand: '#b19661',
+    cardBg: '#1e1e1e', contentBg: '#0c0c0c', divider: '#252525',
+    textPrimary: '#f0f0f0', textSecondary: '#b3b3b3',
+    bbIconColor: '#8094f9', bbBg: '#1a1e3a', bbBorder: '#8094f9',
+    badgeText: '#000000', dotBg: '#1a1a1a', dark: true,
+  },
+  GoGo: {
+    label: 'GoGo Casino', transact: '#00e68f', brand: '#f14aa7',
+    cardBg: '#1e1e1e', contentBg: '#0c0c0c', divider: '#252525',
+    textPrimary: '#f0f0f0', textSecondary: '#b3b3b3',
+    bbIconColor: '#66b5ff', bbBg: '#1a2535', bbBorder: '#66b5ff',
+    badgeText: '#000000', dotBg: '#1a1a1a', dark: true,
+  },
+};
+
+const i18n = {
+  en: { won:'WON', combi:'Combi', bb:'Bet Builder', bbplus:'Bet Builder+', single:'Single', stake:'Stake', payout:'Payout' },
+  sv: { won:'VANN', combi:'Kombi', bb:'Bet Builder', bbplus:'Bet Builder+', single:'Singel', stake:'Insats', payout:'Utbetalning' },
+  fi: { won:'VOITTI', combi:'Kombo', bb:'Bet Builder', bbplus:'Bet Builder+', single:'Yksittäinen', stake:'Panos', payout:'Voitto' },
+  es: { won:'GANADO', combi:'Combinada', bb:'Bet Builder', bbplus:'Bet Builder+', single:'Sencilla', stake:'Apuesta', payout:'Premio' },
+  pt: { won:'GANHOU', combi:'Combinada', bb:'Bet Builder', bbplus:'Bet Builder+', single:'Simples', stake:'Aposta', payout:'Pagamento' },
+};
+
+let cardType = 'combi';
+let activeBrand = 'LeoVegas';
+let additionalLegs = [
+  { selection:'FC Augsburg', market:'3 Way', match:'Warriors vs. Celtics | 13:00', odds:'2.00', showProgress:false, progCurrent:'' },
+];
+
+let legs = [
+  { selection:'Chelsea', market:'Full Time', betType:'Standard 3-way', event:'Chelsea - Man U', showProgress:false, progCurrent:'' },
+  { selection:'Liverpool', market:'Full Time', betType:'Standard 3-way', event:'Liverpool - Arsenal', showProgress:false, progCurrent:'' },
+  { selection:'Real Madrid', market:'Full Time', betType:'Standard 3-way', event:'Real Madrid - Barcelona', showProgress:false, progCurrent:'' },
+];
+
+function t(k) { return (i18n[document.getElementById('lang').value] || i18n.en)[k]; }
+function sym() { const [symbol, pos] = document.getElementById('currency').value.split('|'); return { symbol, post: pos === 'post' }; }
+function formatAmount(amount) { const { symbol, post } = sym(); const val = parseFloat(amount).toFixed(2); return post ? `${val}\u00a0${symbol}` : `${symbol}${val}`; }
+function brand() { return BRANDS[activeBrand]; }
+
+function buildBrandTabs() {
+  const container = document.getElementById('brand-tabs');
+  container.innerHTML = '';
+  Object.entries(BRANDS).forEach(([key, b]) => {
+    const btn = document.createElement('button');
+    btn.className = 'brand-tab' + (key === activeBrand ? ' active' : '');
+    btn.textContent = b.label;
+    if (key === activeBrand) { btn.style.background = b.brand; btn.style.color = '#ffffff'; }
+    btn.addEventListener('click', () => { activeBrand = key; buildBrandTabs(); applyBrandTheme(); renderPreview(); });
+    container.appendChild(btn);
+  });
+}
+
+function applyBrandTheme() {
+  const b = brand();
+  const card = document.getElementById('bet-card');
+  card.style.background = b.cardBg;
+  card.style.borderColor = b.divider;
+  document.getElementById('p-badge').style.background = b.transact;
+  document.getElementById('p-badge').style.color = b.badgeText;
+  document.getElementById('p-title').style.color = b.textPrimary;
+  document.getElementById('p-odds').style.color = b.textPrimary;
+  document.getElementById('p-subtitle').style.color = b.textSecondary;
+  const content = document.getElementById('p-legs-container');
+  content.style.background = b.contentBg;
+  content.style.borderColor = b.divider;
+  document.getElementById('p-stake-lbl').style.color = b.textSecondary;
+  document.getElementById('p-stake').style.color = b.textSecondary;
+  document.getElementById('p-payout-lbl').style.color = b.textSecondary;
+  document.getElementById('p-payout').style.color = b.transact;
+  const bbBadge = document.getElementById('p-bb-badge');
+  bbBadge.style.background = b.bbBg;
+  bbBadge.style.border = 'none';
+  document.getElementById('p-bb-text').style.color = b.bbIconColor;
+}
+
+function switchType(type) {
+  cardType = type;
+  document.getElementById('tab-combi').classList.toggle('active', type === 'combi');
+  document.getElementById('tab-bb').classList.toggle('active', type === 'bb');
+  document.getElementById('tab-bbplus').classList.toggle('active', type === 'bbplus');
+  document.getElementById('tab-single').classList.toggle('active', type === 'single');
+  const _el = (id) => document.getElementById(id);
+  if (_el('bb-match-card')) _el('bb-match-card').style.display = type === 'bb' ? '' : 'none';
+  if (_el('bbplus-extra-card')) _el('bbplus-extra-card').style.display = type === 'bbplus' ? '' : 'none';
+  if (_el('bbplus-match-inline')) _el('bbplus-match-inline').style.display = type === 'bbplus' ? '' : 'none';
+  if (_el('single-match-card')) _el('single-match-card').style.display = type === 'single' ? '' : 'none';
+  const legsLabel = _el('legs-section-label');
+  if (legsLabel) legsLabel.textContent = type === 'bbplus' ? 'Bet Builder Legs' : 'Legs';
+  if (type === 'bbplus') renderAdditionalLegsUI();
+  if (type === 'single' && legs.length > 1) { legs.splice(1); }
+  renderLegsUI();
+  renderPreview();
+}
+
+function renderProgressBar(leg, b) {
+  if (!leg.showProgress) return null;
+  const trackBg = b.dark ? '#333' : '#ddd';
+  const amount = leg.progCurrent || '';
+  const div = document.createElement('div');
+  // Full width wrapper — sits inside leg-text, below the bet type line
+  div.style.cssText = 'width:100%;padding-top:6px;padding-bottom:18px;';
+  div.innerHTML = `
+    <div style="position:relative;height:8px;border-radius:40px;background:${trackBg};overflow:visible;">
+      <!-- Full green fill with diagonal stripe pattern -->
+      <div style="position:absolute;left:0;top:0;height:8px;width:100%;border-radius:40px;overflow:hidden;background:${b.transact};">
+        <div style="position:absolute;inset:0;background:repeating-linear-gradient(
+          -45deg,
+          transparent,
+          transparent 4px,
+          rgba(0,0,0,0.12) 4px,
+          rgba(0,0,0,0.12) 8px
+        );"></div>
+      </div>
+      <!-- Value bubble floating above right end of fill -->
+      ${amount ? `<div style="
+        position:absolute;
+        right:0;
+        top:-7px;
+        background:#fff;
+        color:#000;
+        font-size:13px;
+        font-weight:700;
+        padding:0 6px;
+        border-radius:4px;
+        line-height:20px;
+        box-shadow:0 2px 5px rgba(0,0,0,0.15);
+        white-space:nowrap;
+        transform:translateX(50%);
+      ">${amount}</div>` : ''}
+    </div>
+  `;
+  return div;
+}
+
+function renderAdditionalLegsUI() {
+  const list = document.getElementById('bbplus-legs-list');
+  if (!list) return;
+  list.innerHTML = '';
+  additionalLegs.forEach((leg, i) => {
+    const block = document.createElement('div');
+    block.className = 'leg-block';
+    block.innerHTML = `
+      <div class="leg-header">
+        <span class="leg-num">Additional leg ${i+1}</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:#71717a;font-weight:500;cursor:pointer;">
+            <input type="checkbox" data-af="showProgress" data-i="${i}" ${leg.showProgress ? 'checked' : ''} style="width:auto;margin:0;cursor:pointer;"> Progress
+          </label>
+          ${additionalLegs.length > 1 ? `<button class="remove-btn" data-ai="${i}">×</button>` : ''}
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Selection</label><input data-af="selection" data-i="${i}" value="${leg.selection}"></div>
+        <div class="field"><label>Market</label><input data-af="market" data-i="${i}" value="${leg.market}"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Match</label><input data-af="match" data-i="${i}" value="${leg.match}"></div>
+        <div class="field" style="max-width:80px;"><label>Odds</label><input type="number" data-af="odds" data-i="${i}" value="${leg.odds}" step="0.01" min="1"></div>
+      </div>
+      ${leg.showProgress ? `
+      <div style="border-top:1px solid #e4e4e7;margin-top:4px;padding-top:8px;">
+        <div class="field"><label>Amount</label><input type="number" data-af="progCurrent" data-i="${i}" value="${leg.progCurrent}" placeholder="e.g. 2" step="0.5"></div>
+      </div>` : ''}
+    `;
+    list.appendChild(block);
+  });
+
+  list.querySelectorAll('input[data-af]').forEach(el => {
+    const evt = el.type === 'checkbox' ? 'change' : 'input';
+    el.addEventListener(evt, e => {
+      const val = el.type === 'checkbox' ? el.checked : e.target.value;
+      additionalLegs[+e.target.dataset.i][e.target.dataset.af] = val;
+      if (e.target.dataset.af === 'showProgress') renderAdditionalLegsUI();
+      renderPreview();
+    });
+  });
+  list.querySelectorAll('.remove-btn[data-ai]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      additionalLegs.splice(+e.target.dataset.ai, 1);
+      renderAdditionalLegsUI();
+      renderPreview();
+    });
+  });
+}
+
+function renderLegsUI() {
+  const list = document.getElementById('legs-list');
+  list.innerHTML = '';
+  const isSingle = cardType === 'single';
+  const isBBmode = cardType === 'bb';
+  const showEvent = cardType === 'combi';
+  const displayLegs = isSingle ? legs.slice(0, 1) : legs;
+  displayLegs.forEach((leg, i) => {
+    const block = document.createElement('div');
+    block.className = 'leg-block';
+    block.innerHTML = `
+      <div class="leg-header">
+        <span class="leg-num">${isSingle ? 'Selection' : 'Leg ' + (i+1)}</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          ${isBBmode ? `<label style="display:flex;align-items:center;gap:4px;font-size:11px;color:#71717a;font-weight:500;cursor:pointer;"><input type="checkbox" data-f="showProgress" data-i="${i}" ${leg.showProgress ? 'checked' : ''} style="width:auto;margin:0;cursor:pointer;"> Progress</label>` : ''}
+          ${!isSingle && legs.length > 1 ? `<button class="remove-btn" data-i="${i}">×</button>` : ''}
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Selection</label><input data-f="selection" data-i="${i}" value="${leg.selection}"></div>
+        <div class="field"><label>Market</label><input data-f="market" data-i="${i}" value="${leg.market}"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Bet type</label><input data-f="betType" data-i="${i}" value="${leg.betType}"></div>
+        ${showEvent ? `<div class="field"><label>Event</label><input data-f="event" data-i="${i}" value="${leg.event}"></div>` : ''}
+      </div>
+      ${isBBmode && leg.showProgress ? `
+      <div style="border-top:1px solid #e4e4e7;margin-top:4px;padding-top:8px;">
+        <div class="field"><label>Amount</label><input type="number" data-f="progCurrent" data-i="${i}" value="${leg.progCurrent}" placeholder="e.g. 2" step="0.5"></div>
+      </div>` : ''}
+    `;
+    list.appendChild(block);
+  });
+  list.querySelectorAll('input[data-f]').forEach(el => {
+    const evt = el.type === 'checkbox' ? 'change' : 'input';
+    el.addEventListener(evt, e => {
+      const val = el.type === 'checkbox' ? el.checked : e.target.value;
+      legs[+e.target.dataset.i][e.target.dataset.f] = val;
+      if (e.target.dataset.f === 'showProgress') renderLegsUI();
+      renderPreview();
+    });
+  });
+  list.querySelectorAll('.remove-btn').forEach(btn => {
+    btn.addEventListener('click', e => { legs.splice(+e.target.dataset.i, 1); renderLegsUI(); renderPreview(); });
+  });
+}
+
+function renderPreview() {
+  const stake = parseFloat(document.getElementById('stake').value) || 0;
+  const payout = parseFloat(document.getElementById('payout').value) || 0;
+  const odds = parseFloat(document.getElementById('odds').value) || 0;
+  const isBB = cardType === 'bb' || cardType === 'bbplus';
+  const isBBplus = cardType === 'bbplus';
+  const isSingle = cardType === 'single';
+  const b = brand();
+
+  document.getElementById('p-badge').textContent = t('won');
+  document.getElementById('p-odds').textContent = odds.toFixed(2);
+  document.getElementById('p-stake-lbl').textContent = t('stake');
+  document.getElementById('p-payout-lbl').textContent = t('payout');
+  document.getElementById('p-stake').textContent = formatAmount(stake);
+  document.getElementById('p-payout').textContent = formatAmount(payout);
+  document.getElementById('p-bb-badge').style.display = isBB ? 'flex' : 'none';
+
+  const subtitle = document.getElementById('p-subtitle');
+  if (isBB) {
+    const ht = isBBplus ? document.getElementById('bbplus-home-team').value : document.getElementById('home-team').value;
+    const at = isBBplus ? document.getElementById('bbplus-away-team').value : document.getElementById('away-team').value;
+    const hs = isBBplus ? document.getElementById('bbplus-home-score').value : document.getElementById('home-score').value;
+    const as_ = isBBplus ? document.getElementById('bbplus-away-score').value : document.getElementById('away-score').value;
+    document.getElementById('p-title').textContent = isBBplus ? `${t('bbplus')} (${legs.length + additionalLegs.length})` : `${t('bb')} (${legs.length})`;
+    subtitle.style.display = '';
+    subtitle.innerHTML = `${ht} <span class="score-red">${hs}</span> - <span class="score-red">${as_}</span> ${at}`;
+  } else if (isSingle) {
+    const ht = document.getElementById('single-home-team').value;
+    const at = document.getElementById('single-away-team').value;
+    const hs = document.getElementById('single-home-score').value;
+    const as_ = document.getElementById('single-away-score').value;
+    const mt = document.getElementById('single-match-time').value;
+    document.getElementById('p-title').textContent = t('single');
+    subtitle.style.display = '';
+    subtitle.innerHTML = `${ht} <span class="score-red">${hs}</span> - <span class="score-red">${as_}</span> ${at}${mt ? ' | ' + mt : ''}`;
+  } else {
+    document.getElementById('p-title').textContent = `${t('combi')} (${legs.length})`;
+    subtitle.style.display = 'none';
+  }
+
+  const container = document.getElementById('p-legs-container');
+  container.innerHTML = '';
+  const addLegEl = document.getElementById('add-leg'); if (addLegEl) addLegEl.style.display = isSingle ? 'none' : '';
+
+  const displayLegs = isSingle ? legs.slice(0, 1) : legs;
+  displayLegs.forEach((leg, i) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'leg-row-wrap';
+
+    if (!isSingle) {
+      const dotCol = document.createElement('div');
+      dotCol.className = 'leg-dot-col';
+      const dot = document.createElement('div');
+      dot.className = 'leg-dot';
+      dot.style.background = b.transact;
+      dot.innerHTML = `<svg width="6" height="5" viewBox="0 0 6 5" fill="none"><path d="M1 2.5L2.5 4L5 1" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+      dotCol.appendChild(dot);
+      if (i < displayLegs.length - 1) {
+        const line = document.createElement('div');
+        line.className = 'leg-connector-line';
+        line.style.background = b.divider;
+        dotCol.appendChild(line);
+      }
+      wrap.appendChild(dotCol);
+    }
+
+    const textDiv = document.createElement('div');
+    textDiv.className = 'leg-text';
+    textDiv.innerHTML = `
+      <div class="leg-selection">
+        <span class="leg-sel" style="color:${b.textPrimary}">${leg.selection}</span>
+        <span class="leg-mkt" style="color:${b.textSecondary}">&nbsp;${leg.market}</span>
+      </div>
+      <div class="leg-sub" style="color:${b.textSecondary}">${leg.betType}</div>
+      ${!isBB && !isSingle && leg.event ? `<div class="leg-sub" style="color:${b.textSecondary}">${leg.event}</div>` : ''}
+    `;
+    if (isBB) {
+      const pb = renderProgressBar(leg, b);
+      if (pb) textDiv.appendChild(pb);
+    }
+
+    wrap.appendChild(textDiv);
+    container.appendChild(wrap);
+  });
+}
+
+const addLegBtn = document.getElementById('add-leg');
+if (addLegBtn) addLegBtn.addEventListener('click', () => {
+  legs.push({ selection:'', market:'', betType:'', event:'', showProgress:false, progCurrent:'' });
+  renderLegsUI(); renderPreview();
+});
+
+function recalcPayout() {
+  if (document.getElementById('payout-manual').checked) return;
+  const stake = parseFloat(document.getElementById('stake').value) || 0;
+  const odds = parseFloat(document.getElementById('odds').value) || 0;
+  document.getElementById('payout').value = (stake * odds).toFixed(2);
+}
+
+const payoutManualEl = document.getElementById('payout-manual');
+if (payoutManualEl) payoutManualEl.addEventListener('change', function() {
+  const el = document.getElementById('payout');
+  el.disabled = !this.checked;
+  el.style.color = this.checked ? '' : '#a1a1aa';
+  if (!this.checked) recalcPayout();
+});
+
+['stake','payout','odds','currency','lang','home-team','away-team','home-score','away-score','bbplus-home-team','bbplus-away-team','bbplus-home-score','bbplus-away-score','single-home-team','single-away-team','single-home-score','single-away-score','single-match-time'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) {
+    el.addEventListener('input', () => { if (id === 'stake' || id === 'odds') recalcPayout(); renderPreview(); });
+    el.addEventListener('change', () => { if (id === 'stake' || id === 'odds') recalcPayout(); renderPreview(); });
+  }
+});
+
+const bbplusAddLegBtn = document.getElementById('bbplus-add-leg');
+if (bbplusAddLegBtn) bbplusAddLegBtn.addEventListener('click', () => {
+  additionalLegs.push({ selection:'', market:'', match:'', odds:'2.00', showProgress:false, progCurrent:'' });
+  renderAdditionalLegsUI();
+  renderPreview();
+});
+
+const exportBtn = document.getElementById('export-btn');
+if (exportBtn) exportBtn.addEventListener('click', () => {
+  const card = document.getElementById('bet-card');
+  html2canvas(card, { scale: 3, backgroundColor: null, useCORS: true }).then(canvas => {
+    const a = document.createElement('a');
+    a.download = `winning-bet-${activeBrand.toLowerCase()}-${cardType}.png`;
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+  });
+});
+
+buildBrandTabs();
+applyBrandTheme();
+recalcPayout();
+renderLegsUI();
+renderAdditionalLegsUI();
+renderPreview();
+</script>
+</body>
+</html>
