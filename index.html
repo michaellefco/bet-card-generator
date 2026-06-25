@@ -393,7 +393,19 @@ let legs = [
 
 function t(k) { return (i18n[document.getElementById('lang').value] || i18n.en)[k]; }
 function sym() { const [symbol, pos] = document.getElementById('currency').value.split('|'); return { symbol, post: pos === 'post' }; }
-function formatAmount(amount) { const { symbol, post } = sym(); const val = parseFloat(amount).toFixed(2); return post ? `${val}\u00a0${symbol}` : `${symbol}${val}`; }
+function useComma() {
+  const el = document.getElementById('lang');
+  return el ? ['sv', 'fi', 'es', 'pt'].includes(el.value) : false;
+}
+function formatDecimal(n, decimals = 2) {
+  const fixed = parseFloat(n).toFixed(decimals);
+  return useComma() ? fixed.replace('.', ',') : fixed;
+}
+function formatAmount(amount) {
+  const { symbol, post } = sym();
+  const val = formatDecimal(amount);
+  return post ? `${val} ${symbol}` : `${symbol}${val}`;
+}
 function brand() { return BRANDS[activeBrand]; }
 
 function buildBrandTabs() {
@@ -599,7 +611,7 @@ function renderPreview() {
   const b = brand();
 
   document.getElementById('p-badge').textContent = t('won');
-  document.getElementById('p-odds').textContent = odds.toFixed(2);
+  document.getElementById('p-odds').textContent = formatDecimal(odds);
   document.getElementById('p-stake-lbl').textContent = t('stake');
   document.getElementById('p-payout-lbl').textContent = t('payout');
   document.getElementById('p-stake').textContent = formatAmount(stake);
@@ -685,7 +697,7 @@ function recalcPayout() {
   if (document.getElementById('payout-manual').checked) return;
   const stake = parseFloat(document.getElementById('stake').value) || 0;
   const odds = parseFloat(document.getElementById('odds').value) || 0;
-  document.getElementById('payout').value = (stake * odds).toFixed(2);
+  document.getElementById('payout').value = (stake * odds).toFixed(2); // input always uses period
 }
 
 const payoutManualEl = document.getElementById('payout-manual');
